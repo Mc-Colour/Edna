@@ -1,8 +1,10 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/sashabaranov/go-openai"
 	"log"
 	"os"
 	"os/signal"
@@ -11,8 +13,8 @@ import (
 )
 
 var (
-	BotToken string
-	//OpenAiToken string
+	BotToken    string
+	OpenAiToken string
 )
 
 func Run() {
@@ -26,7 +28,11 @@ func Run() {
 	discord.AddHandler(newMessage)
 
 	// Open session
-	discord.Open()
+	err = discord.Open()
+	if err != nil {
+		fmt.Println("error opening connection,", err)
+		return
+	}
 	defer discord.Close()
 
 	// Run until code is terminated
@@ -43,37 +49,38 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	}
 
 	// Respond to messages
-	switch {
-
-	//case strings.Contains(message.Content, "!Edna"):
-	//botResponse := GptResponse(message.Content)
-	//discord.ChannelMessageSend(message.ChannelID, botResponse)
-	case strings.Contains(message.Content, "bot"):
-		discord.ChannelMessageSend(message.ChannelID, "Hi there!")
+	//switch {
+	//
+	//case strings.Contains(message.Content, "Edna"):
+	//	botResponse := GptResponse(message.Content)
+	//	discord.ChannelMessageSend(message.ChannelID, botResponse)
+	//}
+	if strings.Contains(message.Content, "Edna") || strings.Contains(message.Content, "edna") {
+		botResponse := GptResponse(message.Content)
+		discord.ChannelMessageSend(message.ChannelID, botResponse)
 	}
 
 }
 
 // GPT-3 stuff
-//func GptResponse(prompt string) string {
-//	client := openai.NewClient(OpenAiToken)
-//	resp, err := client.CreateChatCompletion(
-//		context.Background(),
-//		openai.ChatCompletionRequest{
-//			Model: openai.GPT3Dot5Turbo,
-//			Messages: []openai.ChatCompletionMessage{
-//				{
-//					Role:    openai.ChatMessageRoleUser,
-//					Content: prompt,
-//				},
-//			},
-//		},
-//	)
-//
-//	if err != nil {
-//		fmt.Printf("ChatCompletion error: %v\n", err)
-//		return "Chat completion error :("
-//	}
-//	fmt.Printf(resp.Choices[0].Message.Content)
-//	return resp.Choices[0].Message.Content
-//}
+func GptResponse(prompt string) string {
+	client := openai.NewClient(OpenAiToken)
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: openai.GPT3Dot5Turbo,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: prompt,
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("ChatCompletion error: %v\n", err)
+		return "I need more money honey"
+	}
+	return resp.Choices[0].Message.Content
+}
